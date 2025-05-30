@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/seqyuan/shiny:1.0
+      ports:
+        - 8082:8082
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -26,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y jq
+          apt-get install -y jq curl
 
       - name: Install cloudflared
         run: |
@@ -37,7 +39,14 @@ jobs:
       - name: Start Shiny app
         run: |
           R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
-          sleep 5  # Wait for Shiny to start
+          sleep 10  # Wait for Shiny to start
+          
+          # Verify Shiny app is running
+          if ! curl -s http://localhost:8082 > /dev/null; then
+            echo "Shiny app failed to start"
+            exit 1
+          fi
+          echo "Shiny app is running"
 
       - name: Start tunnel and get URL
         id: tunnel
@@ -45,6 +54,13 @@ jobs:
           # Start tunnel in background with token
           cloudflared tunnel run --token $TUNNEL_TOKEN --url http://localhost:8082 &
           sleep 10  # Wait for tunnel to establish
+          
+          # Verify tunnel is working
+          if ! curl -s http://localhost:8082 > /dev/null; then
+            echo "Tunnel failed to start"
+            exit 1
+          fi
+          echo "Tunnel is running"
           
           # Use tunnel ID from environment variable
           echo "tunnel_id=$TUNNEL_ID" >> $GITHUB_OUTPUT
