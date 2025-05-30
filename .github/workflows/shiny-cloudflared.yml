@@ -64,7 +64,7 @@ jobs:
       - name: Start tunnel and get URL
         id: tunnel
         run: |
-          # Start tunnel in background with token
+          # Start tunnel in background with token (方案一)
           echo "Starting cloudflared tunnel..."
           cloudflared tunnel run --token $TUNNEL_TOKEN --url http://localhost:8082 &
           sleep 10  # Wait for tunnel to establish
