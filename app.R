@@ -2,16 +2,14 @@ library(shiny)
 
 ui <- fluidPage(
   titlePanel("Welcome to Shiny App"),
-  mainPanel(
-    h2("Hello from GitHub Actions!"),
-    p("This Shiny app is running through a Cloudflared tunnel."),
-    plotOutput("plot")
-  )
+  sliderInput("n", "Number of points", min = 10, max = 200, value = 100, step = 10),
+  textInput("title", "Plot title", value = "Hello from GitHub Actions!"),
+  plotOutput("plot")
 )
 
 server <- function(input, output, session) {
   output$plot <- renderPlot({
-    plot(1:10, main = "Sample Plot", type = "l", col = "blue")
+    plot(rnorm(input$n), main = input$title)
   })
 }
 
