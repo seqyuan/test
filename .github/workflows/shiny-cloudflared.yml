@@ -23,14 +23,30 @@ jobs:
           dpkg -i cloudflared-linux-amd64.deb
           rm cloudflared-linux-amd64.deb
 
+      - name: Create tunnel
+        id: create-tunnel
+        run: |
+          TUNNEL_NAME="shiny-tunnel-$(date +%s)"
+          TUNNEL_ID=$(cloudflared tunnel create $TUNNEL_NAME | grep -oP '(?<=Created tunnel )[^ ]+')
+          echo "tunnel_id=$TUNNEL_ID" >> $GITHUB_OUTPUT
+          echo "TUNNEL_ID=$TUNNEL_ID" >> $GITHUB_ENV
+
       - name: Start Shiny app
         run: |
           R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
           sleep 5  # Wait for Shiny to start
 
-      - name: Start cloudflared tunnel
+      - name: Start tunnel
         run: |
-          cloudflared tunnel --url http://localhost:8082 &
-          sleep 5  # Wait for tunnel to establish
-          echo "Cloudflared tunnel URL:"
-          cloudflared tunnel info 
+          cloudflared tunnel run --url http://localhost:8082 ${{ steps.create-tunnel.outputs.tunnel_id }} &
+          sleep 10  # Wait for tunnel to establish
+          echo "Tunnel URL:"
+          cloudflared tunnel info ${{ steps.create-tunnel.outputs.tunnel_id }}
+
+      - name: Cleanup tunnel
+        if: always()
+        run: |
+          if [ ! -z "${{ steps.create-tunnel.outputs.tunnel_id }}" ]; then
+            cloudflared tunnel cleanup ${{ steps.create-tunnel.outputs.tunnel_id }}
+            cloudflared tunnel delete ${{ steps.create-tunnel.outputs.tunnel_id }}
+          fi 
