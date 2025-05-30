@@ -10,7 +10,7 @@ on:
 
 env:
   TUNNEL_TOKEN: ${{ secrets.TUNNEL_TOKEN }}
-  TUNNEL_ORIGIN_CERT: ${{ secrets.TUNNEL_ORIGIN_CERT }}
+  #TUNNEL_ORIGIN_CERT: ${{ secrets.TUNNEL_ORIGIN_CERT }}
 
 jobs:
   deploy:
