@@ -43,16 +43,18 @@ jobs:
           sleep 10  # Wait for Shiny to start
           
           # Debug information
-          echo "Checking network status..."
-          netstat -tulpn | grep 8082
           echo "Checking process status..."
           ps aux | grep R
-          echo "Checking container network..."
-          ip addr show
+          echo "Checking network connections..."
+          ss -tulpn | grep 8082 || true
+          echo "Checking system info..."
+          uname -a
+          echo "Checking environment..."
+          env | grep -v "TUNNEL_TOKEN" | sort
           
           # Verify Shiny app is running
           echo "Testing Shiny app connection..."
-          curl -v http://localhost:8082
+          curl -v http://localhost:8082 || true
           if ! curl -s http://localhost:8082 > /dev/null; then
             echo "Shiny app failed to start"
             exit 1
@@ -69,13 +71,15 @@ jobs:
           
           # Debug information
           echo "Checking tunnel status..."
-          cloudflared tunnel info $TUNNEL_ID --token $TUNNEL_TOKEN
+          cloudflared tunnel info $TUNNEL_ID --token $TUNNEL_TOKEN || true
           echo "Checking tunnel connections..."
-          netstat -tulpn | grep cloudflared
+          ss -tulpn | grep cloudflared || true
+          echo "Checking cloudflared process..."
+          ps aux | grep cloudflared
           
           # Verify tunnel is working
           echo "Testing tunnel connection..."
-          curl -v http://localhost:8082
+          curl -v http://localhost:8082 || true
           if ! curl -s http://localhost:8082 > /dev/null; then
             echo "Tunnel failed to start"
             exit 1
