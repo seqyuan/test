@@ -31,25 +31,6 @@ jobs:
           dpkg -i cloudflared-linux-amd64.deb
           rm cloudflared-linux-amd64.deb
 
-      - name: Setup Cloudflare credentials
-        run: |
-          # Create config directory
-          mkdir -p ~/.cloudflared
-          
-          # Create config file with both token and cert
-          cat > ~/.cloudflared/config.yml << EOF
-          tunnel: $(echo $TUNNEL_TOKEN | base64 -d | jq -r '.t')
-          credentials-file: /root/.cloudflared/cert.pem
-          origincert: /root/.cloudflared/cert.pem
-          EOF
-          
-          # Create cert file
-          echo $TUNNEL_TOKEN > ~/.cloudflared/cert.pem
-          chmod 600 ~/.cloudflared/cert.pem
-          
-          # Set environment variable
-          echo "TUNNEL_ORIGIN_CERT=/root/.cloudflared/cert.pem" >> $GITHUB_ENV
-
       - name: Start Shiny app
         run: |
           R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
@@ -62,8 +43,8 @@ jobs:
           TUNNEL_ID=$(echo $TUNNEL_TOKEN | base64 -d | jq -r '.t')
           echo "tunnel_id=$TUNNEL_ID" >> $GITHUB_OUTPUT
           
-          # Start tunnel in background
-          cloudflared tunnel run --url http://localhost:8082 &
+          # Start tunnel in background with token
+          cloudflared tunnel run --token $TUNNEL_TOKEN --url http://localhost:8082 &
           sleep 10  # Wait for tunnel to establish
           
           # Get tunnel URL
