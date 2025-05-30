@@ -44,21 +44,16 @@ jobs:
           cloudflared tunnel run --token $TUNNEL_TOKEN --url http://localhost:8082 &
           sleep 10  # Wait for tunnel to establish
           
-          # Get tunnel ID and URL
-          TUNNEL_INFO=$(cloudflared tunnel list --token $TUNNEL_TOKEN | grep -v "NAME" | head -n 1)
-          TUNNEL_ID=$(echo "$TUNNEL_INFO" | awk '{print $1}')
-          TUNNEL_NAME=$(echo "$TUNNEL_INFO" | awk '{print $2}')
-          
+          # Use known tunnel ID
+          TUNNEL_ID="79d6d1cd-ad7d-4f64-af9b-f506e796be92"
           echo "tunnel_id=$TUNNEL_ID" >> $GITHUB_OUTPUT
-          echo "tunnel_name=$TUNNEL_NAME" >> $GITHUB_OUTPUT
           
-          # Get tunnel URL using the tunnel name
-          TUNNEL_URL=$(cloudflared tunnel info $TUNNEL_NAME --token $TUNNEL_TOKEN | grep -oP '(?<=url=)[^ ]+')
+          # Get tunnel URL using the tunnel ID
+          TUNNEL_URL=$(cloudflared tunnel info $TUNNEL_ID --token $TUNNEL_TOKEN | grep -oP '(?<=url=)[^ ]+')
           echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_OUTPUT
           
           # Display tunnel information
           echo "Tunnel ID: $TUNNEL_ID"
-          echo "Tunnel Name: $TUNNEL_NAME"
           echo "Tunnel URL: $TUNNEL_URL"
           
           # Keep the workflow running
