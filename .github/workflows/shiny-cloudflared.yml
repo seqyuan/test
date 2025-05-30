@@ -12,7 +12,6 @@ env:
   TUNNEL_TOKEN: ${{ secrets.TUNNEL_TOKEN }}
   TUNNEL_ID: "84f79e3b-5caf-49e5-abd5-4b9dcbc08133"
   TUNNEL_DOMAIN: "enrich.bodagene.cn"
-  #TUNNEL_ORIGIN_CERT: ${{ secrets.TUNNEL_ORIGIN_CERT }}
 
 jobs:
   deploy:
@@ -38,7 +37,6 @@ jobs:
 
       - name: Start Shiny app
         run: |
-          # Start Shiny app and wait for it to be ready
           R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
           sleep 10  # Wait for Shiny to start
           
@@ -96,6 +94,26 @@ jobs:
           # Display tunnel information
           echo "Tunnel ID: $TUNNEL_ID"
           echo "Tunnel URL: $TUNNEL_URL"
-          
-          # Keep the workflow running
+
+      - name: Monitor Shiny activity
+        run: |
+          # Poll Shiny app every 5 minutes, and exit if no activity (no "200" response) for 20 minutes (4 consecutive failures).
+          FAIL_COUNT=0
+          while true; do
+            if curl -s --head http://localhost:8082 | grep -q "200 OK"; then
+              echo "Shiny app is active (200 OK). Resetting fail count."
+              FAIL_COUNT=0
+            else
+              FAIL_COUNT=$(( FAIL_COUNT + 1 ))
+              echo "Shiny app not active (fail count: $FAIL_COUNT)."
+              if [ $FAIL_COUNT -ge 4 ]; then
+                echo "Shiny app inactive for 20 minutes (4 consecutive failures). Stopping workflow."
+                exit 0
+              fi
+            fi
+            sleep 300  # sleep 5 minutes
+          done
+
+      - name: Keep the workflow running
+        run: |
           tail -f /dev/null 
