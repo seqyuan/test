@@ -20,6 +20,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y jq
+
       - name: Install cloudflared
         run: |
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
@@ -31,9 +36,21 @@ jobs:
           R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
           sleep 5  # Wait for Shiny to start
 
-      - name: Start tunnel
+      - name: Start tunnel and get URL
+        id: tunnel
         run: |
+          # Start tunnel in background
           cloudflared tunnel run --token $TUNNEL_TOKEN --url http://localhost:8082 &
           sleep 10  # Wait for tunnel to establish
-          echo "Tunnel URL:"
-          cloudflared tunnel info 
+          
+          # Get tunnel ID from token
+          TUNNEL_ID=$(echo $TUNNEL_TOKEN | base64 -d | jq -r '.t')
+          echo "tunnel_id=$TUNNEL_ID" >> $GITHUB_OUTPUT
+          
+          # Get tunnel URL
+          TUNNEL_URL=$(cloudflared tunnel info $TUNNEL_ID | grep -oP '(?<=url=)[^ ]+')
+          echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_OUTPUT
+          
+          # Display tunnel information
+          echo "Tunnel ID: $TUNNEL_ID"
+          echo "Tunnel URL: $TUNNEL_URL" 
