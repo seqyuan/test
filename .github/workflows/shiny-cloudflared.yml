@@ -31,21 +31,6 @@ jobs:
           dpkg -i cloudflared-linux-amd64.deb
           rm cloudflared-linux-amd64.deb
 
-      - name: Setup Cloudflare credentials
-        run: |
-          # Create config directory
-          mkdir -p ~/.cloudflared
-          
-          # Create config file
-          cat > ~/.cloudflared/config.yml << EOF
-          tunnel: $(echo $TUNNEL_TOKEN | base64 -d | jq -r '.t')
-          credentials-file: /root/.cloudflared/cert.pem
-          EOF
-          
-          # Create cert file from token
-          echo $TUNNEL_TOKEN > ~/.cloudflared/cert.pem
-          chmod 600 ~/.cloudflared/cert.pem
-
       - name: Start Shiny app
         run: |
           R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
@@ -54,13 +39,13 @@ jobs:
       - name: Start tunnel and get URL
         id: tunnel
         run: |
-          # Start tunnel in background
-          cloudflared tunnel run --url http://localhost:8082 &
-          sleep 10  # Wait for tunnel to establish
-          
           # Get tunnel ID from token
           TUNNEL_ID=$(echo $TUNNEL_TOKEN | base64 -d | jq -r '.t')
           echo "tunnel_id=$TUNNEL_ID" >> $GITHUB_OUTPUT
+          
+          # Start tunnel in background with token
+          TUNNEL_TOKEN=$TUNNEL_TOKEN cloudflared tunnel run --url http://localhost:8082 &
+          sleep 10  # Wait for tunnel to establish
           
           # Get tunnel URL
           TUNNEL_URL=$(cloudflared tunnel info $TUNNEL_ID | grep -oP '(?<=url=)[^ ]+')
@@ -68,4 +53,7 @@ jobs:
           
           # Display tunnel information
           echo "Tunnel ID: $TUNNEL_ID"
-          echo "Tunnel URL: $TUNNEL_URL" 
+          echo "Tunnel URL: $TUNNEL_URL"
+          
+          # Keep the workflow running
+          tail -f /dev/null 
