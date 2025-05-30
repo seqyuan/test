@@ -8,6 +8,9 @@ on:
         required: true
         default: 'curl'
 
+env:
+  TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -23,14 +26,6 @@ jobs:
           dpkg -i cloudflared-linux-amd64.deb
           rm cloudflared-linux-amd64.deb
 
-      - name: Create tunnel
-        id: create-tunnel
-        run: |
-          TUNNEL_NAME="shiny-tunnel-$(date +%s)"
-          TUNNEL_ID=$(cloudflared tunnel create $TUNNEL_NAME | grep -oP '(?<=Created tunnel )[^ ]+')
-          echo "tunnel_id=$TUNNEL_ID" >> $GITHUB_OUTPUT
-          echo "TUNNEL_ID=$TUNNEL_ID" >> $GITHUB_ENV
-
       - name: Start Shiny app
         run: |
           R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
@@ -38,15 +33,7 @@ jobs:
 
       - name: Start tunnel
         run: |
-          cloudflared tunnel run --url http://localhost:8082 ${{ steps.create-tunnel.outputs.tunnel_id }} &
+          cloudflared tunnel run --token $TUNNEL_TOKEN --url http://localhost:8082 &
           sleep 10  # Wait for tunnel to establish
           echo "Tunnel URL:"
-          cloudflared tunnel info ${{ steps.create-tunnel.outputs.tunnel_id }}
-
-      - name: Cleanup tunnel
-        if: always()
-        run: |
-          if [ ! -z "${{ steps.create-tunnel.outputs.tunnel_id }}" ]; then
-            cloudflared tunnel cleanup ${{ steps.create-tunnel.outputs.tunnel_id }}
-            cloudflared tunnel delete ${{ steps.create-tunnel.outputs.tunnel_id }}
-          fi 
+          cloudflared tunnel info 
