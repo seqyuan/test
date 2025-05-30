@@ -11,7 +11,7 @@ on:
 env:
   TUNNEL_TOKEN: ${{ secrets.TUNNEL_TOKEN }}
   TUNNEL_ID: "84f79e3b-5caf-49e5-abd5-4b9dcbc08133"
-  TUNNEL_DOMAIN: "enrich.bodagene.cn"
+  #TUNNEL_DOMAIN: "enrich.xxx.cn"
 
 jobs:
   deploy:
@@ -37,7 +37,7 @@ jobs:
 
       - name: Start Shiny app
         run: |
-          R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
+          R_ENVIRON_USER= R -e "shiny::runApp('app.R', port = 8082, host = '0.0.0.0')" &
           sleep 10  # Wait for Shiny to start
           
           # Debug information
@@ -88,12 +88,12 @@ jobs:
           echo "tunnel_id=$TUNNEL_ID" >> $GITHUB_OUTPUT
           
           # Use domain from environment variable
-          TUNNEL_URL="https://$TUNNEL_DOMAIN"
+          #TUNNEL_URL="https://$TUNNEL_DOMAIN"
           echo "tunnel_url=$TUNNEL_URL" >> $GITHUB_OUTPUT
           
           # Display tunnel information
           echo "Tunnel ID: $TUNNEL_ID"
-          echo "Tunnel URL: $TUNNEL_URL"
+          #echo "Tunnel URL: $TUNNEL_URL"
 
       - name: Monitor Shiny activity
         run: |
