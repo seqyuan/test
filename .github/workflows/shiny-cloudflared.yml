@@ -11,20 +11,16 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/seqyuan/shiny:1.0
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install R and dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y r-base r-base-dev
-          R -e "install.packages(c('shiny', 'remotes'), repos='https://cloud.r-project.org')"
-
       - name: Install cloudflared
         run: |
           wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared-linux-amd64.deb
+          dpkg -i cloudflared-linux-amd64.deb
           rm cloudflared-linux-amd64.deb
 
       - name: Start Shiny app
